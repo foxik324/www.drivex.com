@@ -1,0 +1,1644 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DriveX Navigator</title>
+
+<link rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:#080808;
+    color:white;
+    overflow:hidden;
+}
+
+#map{
+    position:fixed;
+    inset:0;
+    z-index:1;
+}
+
+.panel{
+    position:fixed;
+    z-index:10;
+    top:15px;
+    left:15px;
+    width:350px;
+    background:rgba(15,15,15,.94);
+    border:1px solid #292929;
+    border-radius:22px;
+    padding:18px;
+    box-shadow:0 15px 50px #000;
+    backdrop-filter:blur(15px);
+}
+
+.logo{
+    font-size:25px;
+    font-weight:900;
+    margin-bottom:15px;
+}
+
+.logo span{
+    color:#4cff72;
+}
+
+.input{
+    width:100%;
+    padding:14px;
+    margin-bottom:9px;
+    background:#202020;
+    color:white;
+    border:1px solid #333;
+    border-radius:12px;
+    outline:none;
+}
+
+.input:focus{
+    border-color:#4cff72;
+}
+
+button{
+    border:0;
+    cursor:pointer;
+    color:white;
+    background:#242424;
+    padding:12px 15px;
+    border-radius:12px;
+    transition:.2s;
+}
+
+button:hover{
+    transform:translateY(-2px);
+    background:#303030;
+}
+
+.mainBtn{
+    width:100%;
+    background:#35d95d;
+    color:#061006;
+    font-weight:bold;
+    margin-top:4px;
+}
+
+.mainBtn:hover{
+    background:#51ed75;
+}
+
+.modes{
+    display:flex;
+    gap:7px;
+    margin-top:12px;
+}
+
+.mode{
+    flex:1;
+    font-size:12px;
+}
+
+.mode.active{
+    background:#35d95d;
+    color:#061006;
+    font-weight:bold;
+}
+
+.info{
+    margin-top:12px;
+    padding:12px;
+    background:#191919;
+    border-radius:12px;
+    font-size:13px;
+    line-height:1.6;
+}
+
+.bottom{
+    position:fixed;
+    z-index:20;
+    bottom:18px;
+    left:50%;
+    transform:translateX(-50%);
+    display:flex;
+    gap:8px;
+    padding:8px;
+    background:rgba(12,12,12,.94);
+    border:1px solid #292929;
+    border-radius:18px;
+    backdrop-filter:blur(15px);
+}
+
+.bottom button{
+    min-width:110px;
+}
+
+.warning{
+    position:fixed;
+    z-index:100;
+    top:-130px;
+    left:50%;
+    transform:translateX(-50%);
+    width:min(700px,94%);
+    padding:22px;
+    text-align:center;
+    border-radius:0 0 22px 22px;
+    background:#d71919;
+    font-size:22px;
+    font-weight:900;
+    box-shadow:0 10px 50px #000;
+    transition:.45s;
+}
+
+.warning.show{
+    top:0;
+}
+
+.navigation{
+    display:none;
+    position:fixed;
+    z-index:30;
+    top:15px;
+    right:15px;
+    width:310px;
+    background:rgba(12,12,12,.95);
+    border:1px solid #292929;
+    border-radius:22px;
+    padding:18px;
+    box-shadow:0 15px 50px #000;
+}
+
+.navigation.active{
+    display:block;
+}
+
+.navDirection{
+    font-size:34px;
+    font-weight:900;
+}
+
+.navInstruction{
+    margin-top:7px;
+    color:#bbb;
+}
+
+.navStats{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-top:15px;
+}
+
+.stat{
+    background:#1b1b1b;
+    padding:12px;
+    border-radius:12px;
+}
+
+.stat small{
+    display:block;
+    color:#888;
+    margin-bottom:4px;
+}
+
+.stat b{
+    font-size:18px;
+}
+
+.speedBox{
+    margin-top:12px;
+    text-align:center;
+    padding:15px;
+    border-radius:15px;
+    background:#161616;
+}
+
+.speed{
+    font-size:42px;
+    font-weight:900;
+}
+
+.speedLimit{
+    color:#ff4949;
+    font-weight:bold;
+}
+
+.stopBtn{
+    width:100%;
+    margin-top:12px;
+    background:#c92525;
+}
+
+.radar{
+    display:none;
+    position:fixed;
+    z-index:50;
+    right:15px;
+    bottom:80px;
+    width:280px;
+    height:190px;
+    background:#000;
+    border-radius:18px;
+    overflow:hidden;
+    border:2px solid #35d95d;
+    box-shadow:0 10px 50px #000;
+}
+
+.radar.active{
+    display:block;
+}
+
+.radar video{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.radarText{
+    position:absolute;
+    top:8px;
+    left:10px;
+    background:rgba(0,0,0,.6);
+    padding:5px 8px;
+    border-radius:7px;
+    font-size:12px;
+}
+
+.loader{
+    position:fixed;
+    z-index:200;
+    inset:0;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    background:rgba(0,0,0,.78);
+    backdrop-filter:blur(8px);
+}
+
+.loader.active{
+    display:flex;
+}
+
+.loaderBox{
+    text-align:center;
+}
+
+.loaderCircle{
+    width:65px;
+    height:65px;
+    border:5px solid #222;
+    border-top-color:#35d95d;
+    border-radius:50%;
+    animation:spin 1s linear infinite;
+    margin:auto;
+}
+
+.loaderText{
+    margin-top:15px;
+    font-weight:bold;
+}
+
+@keyframes spin{
+    to{transform:rotate(360deg)}
+}
+
+.leaflet-control-zoom{
+    margin-top:80px!important;
+}
+
+.cameraIcon{
+    width:36px;
+    height:36px;
+    background:#ff3131;
+    border:3px solid white;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:19px;
+    box-shadow:0 0 15px #ff3131;
+}
+
+.speedIcon{
+    width:43px;
+    height:43px;
+    background:white;
+    color:#111;
+    border:4px solid #d71919;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:14px;
+    font-weight:900;
+    box-shadow:0 0 15px #fff;
+}
+
+.trafficIcon{
+    width:32px;
+    height:32px;
+    border-radius:50%;
+    border:3px solid white;
+    box-shadow:0 0 15px currentColor;
+}
+
+@media(max-width:700px){
+    .panel{
+        width:calc(100% - 30px);
+        left:15px;
+    }
+
+    .navigation{
+        top:auto;
+        bottom:80px;
+        left:15px;
+        right:15px;
+        width:auto;
+    }
+
+    .bottom{
+        width:calc(100% - 30px);
+        justify-content:center;
+    }
+
+    .bottom button{
+        min-width:0;
+        flex:1;
+        font-size:11px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<div class="panel">
+    <div class="logo">Drive<span>X</span></div>
+
+    <input id="from" class="input" placeholder="Откуда">
+    <input id="to" class="input" placeholder="Куда">
+
+    <button class="mainBtn" onclick="buildRoute()">
+        🚗 Построить маршрут
+    </button>
+
+    <div class="modes">
+        <button class="mode active" id="fastBtn" onclick="setMode('fast')">
+            ⚡ Быстрый
+        </button>
+
+        <button class="mode" id="ecoBtn" onclick="setMode('eco')">
+            🍃 Эконом
+        </button>
+
+        <button class="mode" id="safeBtn" onclick="setMode('safe')">
+            🛡 Безопасный
+        </button>
+    </div>
+
+    <button class="mainBtn" onclick="startNavigation()"
+            style="margin-top:8px;">
+        ▶ В путь
+    </button>
+
+    <div class="info" id="info">
+        Введите начало и конец маршрута.
+    </div>
+</div>
+
+<div class="navigation" id="navigation">
+
+    <div class="navDirection" id="navDirection">
+        ↑
+    </div>
+
+    <div class="navInstruction" id="navInstruction">
+        Ожидание GPS...
+    </div>
+
+    <div class="navStats">
+
+        <div class="stat">
+            <small>Осталось</small>
+            <b id="remaining">—</b>
+        </div>
+
+        <div class="stat">
+            <small>Прибытие</small>
+            <b id="arrival">—</b>
+        </div>
+
+    </div>
+
+    <div class="speedBox">
+        <div class="speed" id="currentSpeed">0</div>
+        <div>км/ч</div>
+        <div class="speedLimit" id="currentLimit">
+            Ограничение: —
+        </div>
+    </div>
+
+    <button class="stopBtn" onclick="stopNavigation()">
+        ■ Завершить
+    </button>
+
+</div>
+
+<div class="bottom">
+
+    <button onclick="toggleCameras()">
+        📷 Камеры
+    </button>
+
+    <button onclick="toggleTraffic()">
+        🚦 Трафик
+    </button>
+
+    <button onclick="openSettings()">
+        ⚙ Настройки
+    </button>
+
+    <button onclick="locateUser()">
+        📍 Я здесь
+    </button>
+
+</div>
+
+<div class="warning" id="warning">
+    ⚠️ ВНИМАНИЕ
+</div>
+
+<div class="radar" id="radar">
+    <video id="cameraVideo" autoplay playsinline></video>
+    <div class="radarText">📡 РАДАР</div>
+</div>
+
+<div class="loader" id="loader">
+    <div class="loaderBox">
+        <div class="loaderCircle"></div>
+        <div class="loaderText">
+            Строим лучший маршрут...
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+
+const map = L.map('map').setView([43.2389,76.8897],12);
+
+L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+        attribution:'© OpenStreetMap'
+    }
+).addTo(map);
+
+
+/* =========================
+   ПЕРЕМЕННЫЕ
+========================= */
+
+let currentMode = "fast";
+
+let routeLine = null;
+let routeGlow = null;
+
+let trafficLines = [];
+
+let cameraMarkers = [];
+let speedMarkers = [];
+let trafficMarkers = [];
+
+let routeData = null;
+
+let navigationActive = false;
+let watchID = null;
+
+let currentSpeedValue = 0;
+
+let camerasEnabled = true;
+let trafficEnabled = true;
+let speedLimitsEnabled = true;
+let voiceEnabled = true;
+
+let lastWarning = 0;
+
+
+/* =========================
+   РЕЖИМЫ
+========================= */
+
+function setMode(mode){
+
+    currentMode = mode;
+
+    document.querySelectorAll('.mode')
+        .forEach(x=>x.classList.remove('active'));
+
+    if(mode === "fast")
+        document.getElementById("fastBtn").classList.add("active");
+
+    if(mode === "eco")
+        document.getElementById("ecoBtn").classList.add("active");
+
+    if(mode === "safe")
+        document.getElementById("safeBtn").classList.add("active");
+}
+
+
+/* =========================
+   ГЕОКОДИНГ
+========================= */
+
+async function geocode(text){
+
+    const url =
+        `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(text)}`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if(!data.length)
+        throw new Error("Адрес не найден");
+
+    return [
+        Number(data[0].lat),
+        Number(data[0].lon)
+    ];
+}
+
+
+/* =========================
+   ПОСТРОЕНИЕ МАРШРУТА
+========================= */
+
+async function buildRoute(){
+
+    const fromText =
+        document.getElementById("from").value.trim();
+
+    const toText =
+        document.getElementById("to").value.trim();
+
+    if(!fromText || !toText){
+
+        alert("Введите откуда и куда");
+        return;
+    }
+
+    document.getElementById("loader")
+        .classList.add("active");
+
+    try{
+
+        const from = await geocode(fromText);
+        const to = await geocode(toText);
+
+        const url =
+            `https://router.project-osrm.org/route/v1/driving/` +
+            `${from[1]},${from[0]};${to[1]},${to[0]}` +
+            `?overview=full&geometries=geojson&steps=true`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if(data.code !== "Ok")
+            throw new Error("Маршрут не найден");
+
+        routeData = data.routes[0];
+
+        drawRoute(routeData);
+
+        createRoadData(routeData);
+
+        const km =
+            routeData.distance / 1000;
+
+        const minutes =
+            Math.round(routeData.duration / 60);
+
+        document.getElementById("info").innerHTML =
+            `
+            <b>Маршрут построен</b><br>
+            📏 Расстояние: ${km.toFixed(1)} км<br>
+            ⏱ Время: ${minutes} мин<br>
+            ⚡ Режим: ${getModeName()}<br>
+            📷 Камеры и знаки размещены прямо на дороге
+            `;
+
+    }catch(error){
+
+        alert(error.message);
+
+    }finally{
+
+        document.getElementById("loader")
+            .classList.remove("active");
+    }
+}
+
+
+function getModeName(){
+
+    if(currentMode === "fast")
+        return "Быстрый";
+
+    if(currentMode === "eco")
+        return "Эконом";
+
+    return "Безопасный";
+}
+
+
+/* =========================
+   РИСУЕМ МАРШРУТ
+========================= */
+
+function drawRoute(route){
+
+    if(routeGlow)
+        map.removeLayer(routeGlow);
+
+    if(routeLine)
+        map.removeLayer(routeLine);
+
+    const coords =
+        route.geometry.coordinates.map(
+            p => [p[1],p[0]]
+        );
+
+    routeGlow =
+        L.polyline(
+            coords,
+            {
+                color:"#00ff66",
+                weight:12,
+                opacity:.15
+            }
+        ).addTo(map);
+
+    routeLine =
+        L.polyline(
+            coords,
+            {
+                color:"#39ed68",
+                weight:6,
+                opacity:.95
+            }
+        ).addTo(map);
+
+    map.fitBounds(routeLine.getBounds(),{
+        padding:[80,80]
+    });
+}
+
+
+/* =========================
+   ТОЧКА ПРЯМО НА МАРШРУТЕ
+========================= */
+
+function getPointOnRoute(route,fraction){
+
+    const coords =
+        route.geometry.coordinates;
+
+    if(!coords.length)
+        return null;
+
+    if(coords.length === 1)
+        return [coords[0][1],coords[0][0]];
+
+    let lengths = [];
+    let total = 0;
+
+    for(let i=1;i<coords.length;i++){
+
+        const a =
+            [coords[i-1][1],coords[i-1][0]];
+
+        const b =
+            [coords[i][1],coords[i][0]];
+
+        const distance =
+            map.distance(a,b);
+
+        lengths.push(distance);
+        total += distance;
+    }
+
+    const target = total * fraction;
+
+    let passed = 0;
+
+    for(let i=0;i<lengths.length;i++){
+
+        if(passed + lengths[i] >= target){
+
+            const remain =
+                target - passed;
+
+            const ratio =
+                lengths[i] === 0
+                ? 0
+                : remain / lengths[i];
+
+            const a = coords[i];
+            const b = coords[i+1];
+
+            const lon =
+                a[0] + (b[0]-a[0])*ratio;
+
+            const lat =
+                a[1] + (b[1]-a[1])*ratio;
+
+            return [lat,lon];
+        }
+
+        passed += lengths[i];
+    }
+
+    const last =
+        coords[coords.length-1];
+
+    return [last[1],last[0]];
+}
+
+
+/* =========================
+   ОЧИСТКА ЗНАКОВ
+========================= */
+
+function clearRoadData(){
+
+    cameraMarkers.forEach(m=>{
+        map.removeLayer(m);
+    });
+
+    speedMarkers.forEach(m=>{
+        map.removeLayer(m);
+    });
+
+    trafficMarkers.forEach(m=>{
+        map.removeLayer(m);
+    });
+
+    trafficLines.forEach(m=>{
+        map.removeLayer(m);
+    });
+
+    cameraMarkers = [];
+    speedMarkers = [];
+    trafficMarkers = [];
+    trafficLines = [];
+}
+
+
+/* =========================
+   СОЗДАНИЕ ЗНАКОВ
+========================= */
+
+function createRoadData(route){
+
+    clearRoadData();
+
+    /*
+       ВАЖНО:
+
+       Все точки ниже получают координаты
+       ИМЕННО из geometry маршрута.
+
+       Поэтому они находятся на самой дороге,
+       а не на прямой между началом и концом.
+    */
+
+    const cameras = [
+        .18,
+        .42,
+        .67,
+        .86
+    ];
+
+    const speedLimits = [
+        {position:.12,limit:60},
+        {position:.31,limit:40},
+        {position:.51,limit:60},
+        {position:.73,limit:40},
+        {position:.91,limit:60}
+    ];
+
+    const traffic = [
+        {position:.20,intensity:15},
+        {position:.37,intensity:40},
+        {position:.55,intensity:65},
+        {position:.72,intensity:85},
+        {position:.88,intensity:100}
+    ];
+
+
+    /* КАМЕРЫ */
+
+    cameras.forEach((fraction,index)=>{
+
+        const point =
+            getPointOnRoute(route,fraction);
+
+        const icon =
+            L.divIcon({
+                className:"",
+                html:
+                `<div class="cameraIcon">📷</div>`,
+                iconSize:[36,36],
+                iconAnchor:[18,18]
+            });
+
+        const marker =
+            L.marker(point,{icon})
+            .bindPopup(
+                `<b>📷 Камера</b><br>
+                 Контроль скорости`
+            )
+            .addTo(map);
+
+        marker.fraction = fraction;
+
+        cameraMarkers.push(marker);
+    });
+
+
+    /* ОГРАНИЧЕНИЯ */
+
+    speedLimits.forEach(data=>{
+
+        const point =
+            getPointOnRoute(route,data.position);
+
+        const icon =
+            L.divIcon({
+                className:"",
+                html:
+                `<div class="speedIcon">
+                    ${data.limit}
+                 </div>`,
+                iconSize:[43,43],
+                iconAnchor:[21,21]
+            });
+
+        const marker =
+            L.marker(point,{icon})
+            .bindPopup(
+                `<b>⛔ Ограничение ${data.limit} км/ч</b>`
+            )
+            .addTo(map);
+
+        marker.limit = data.limit;
+        marker.fraction = data.position;
+
+        speedMarkers.push(marker);
+    });
+
+
+    /* ТРАФИК */
+
+    traffic.forEach(data=>{
+
+        const point =
+            getPointOnRoute(route,data.position);
+
+        const color =
+            getTrafficColor(data.intensity);
+
+        const icon =
+            L.divIcon({
+                className:"",
+                html:
+                `<div class="trafficIcon"
+                      style="background:${color};color:${color}">
+                 </div>`,
+                iconSize:[32,32],
+                iconAnchor:[16,16]
+            });
+
+        const marker =
+            L.marker(point,{icon})
+            .bindPopup(
+                `<b>Трафик</b><br>
+                 Интенсивность: ${data.intensity}%`
+            )
+            .addTo(map);
+
+        marker.intensity = data.intensity;
+        marker.fraction = data.position;
+
+        trafficMarkers.push(marker);
+    });
+
+
+    drawTrafficRoute(route,traffic);
+}
+
+
+/* =========================
+   ЦВЕТ ТРАФИКА
+========================= */
+
+function getTrafficColor(value){
+
+    if(value < 25)
+        return "#20e060";
+
+    if(value < 50)
+        return "#a8e000";
+
+    if(value < 70)
+        return "#ffbd00";
+
+    if(value < 90)
+        return "#ff4b00";
+
+    return "#b00000";
+}
+
+
+/* =========================
+   ЦВЕТНОЙ ТРАФИК НА ДОРОГЕ
+========================= */
+
+function drawTrafficRoute(route,data){
+
+    data.forEach((item,index)=>{
+
+        const start =
+            Math.max(0,item.position-.07);
+
+        const end =
+            Math.min(1,item.position+.07);
+
+        const points = [];
+
+        const steps = 10;
+
+        for(let i=0;i<=steps;i++){
+
+            const fraction =
+                start +
+                (end-start)*(i/steps);
+
+            const point =
+                getPointOnRoute(route,fraction);
+
+            points.push(point);
+        }
+
+        const line =
+            L.polyline(
+                points,
+                {
+                    color:getTrafficColor(item.intensity),
+                    weight:8,
+                    opacity:.9
+                }
+            ).addTo(map);
+
+        trafficLines.push(line);
+    });
+}
+
+
+/* =========================
+   КАМЕРЫ
+========================= */
+
+function toggleCameras(){
+
+    camerasEnabled =
+        !camerasEnabled;
+
+    cameraMarkers.forEach(m=>{
+
+        if(camerasEnabled)
+            m.addTo(map);
+        else
+            map.removeLayer(m);
+
+    });
+}
+
+
+/* =========================
+   ТРАФИК
+========================= */
+
+function toggleTraffic(){
+
+    trafficEnabled =
+        !trafficEnabled;
+
+    trafficMarkers.forEach(m=>{
+
+        if(trafficEnabled)
+            m.addTo(map);
+        else
+            map.removeLayer(m);
+
+    });
+
+    trafficLines.forEach(m=>{
+
+        if(trafficEnabled)
+            m.addTo(map);
+        else
+            map.removeLayer(m);
+
+    });
+}
+
+
+/* =========================
+   GPS
+========================= */
+
+let userMarker = null;
+
+function locateUser(){
+
+    if(!navigator.geolocation){
+
+        alert("GPS не поддерживается");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+
+        position=>{
+
+            const lat =
+                position.coords.latitude;
+
+            const lon =
+                position.coords.longitude;
+
+            if(userMarker)
+                map.removeLayer(userMarker);
+
+            userMarker =
+                L.circleMarker(
+                    [lat,lon],
+                    {
+                        radius:9,
+                        color:"#fff",
+                        fillColor:"#35ed67",
+                        fillOpacity:1,
+                        weight:3
+                    }
+                )
+                .addTo(map);
+
+            map.setView(
+                [lat,lon],
+                16
+            );
+        },
+
+        ()=>{
+            alert("Не удалось получить GPS");
+        },
+
+        {
+            enableHighAccuracy:true
+        }
+    );
+}
+
+
+/* =========================
+   НАВИГАЦИЯ
+========================= */
+
+function startNavigation(){
+
+    if(!routeData){
+
+        alert("Сначала построй маршрут");
+        return;
+    }
+
+    if(!navigator.geolocation){
+
+        alert("GPS не поддерживается");
+        return;
+    }
+
+    navigationActive = true;
+
+    document
+        .getElementById("navigation")
+        .classList.add("active");
+
+    watchID =
+        navigator.geolocation.watchPosition(
+            updateNavigation,
+            gpsError,
+            {
+                enableHighAccuracy:true,
+                maximumAge:1000,
+                timeout:10000
+            }
+        );
+
+    speak("Навигация запущена");
+}
+
+
+function updateNavigation(position){
+
+    const lat =
+        position.coords.latitude;
+
+    const lon =
+        position.coords.longitude;
+
+    let speed =
+        position.coords.speed;
+
+    if(speed == null || speed < 0)
+        speed = 0;
+
+    currentSpeedValue =
+        speed * 3.6;
+
+    document.getElementById("currentSpeed")
+        .textContent =
+        Math.round(currentSpeedValue);
+
+
+    if(userMarker)
+        map.removeLayer(userMarker);
+
+    userMarker =
+        L.circleMarker(
+            [lat,lon],
+            {
+                radius:8,
+                color:"#fff",
+                fillColor:"#35ed67",
+                fillOpacity:1,
+                weight:3
+            }
+        ).addTo(map);
+
+
+    map.setView(
+        [lat,lon],
+        Math.max(map.getZoom(),15),
+        {
+            animate:true
+        }
+    );
+
+
+    updateDirection(lat,lon);
+
+    updateRouteDistance(lat,lon);
+
+    checkWarnings(lat,lon);
+}
+
+
+/* =========================
+   НАПРАВЛЕНИЕ
+========================= */
+
+function updateDirection(lat,lon){
+
+    if(!routeData ||
+       !routeData.legs ||
+       !routeData.legs[0])
+        return;
+
+    const steps =
+        routeData.legs[0].steps;
+
+    if(!steps.length)
+        return;
+
+    let nearest = null;
+    let nearestDistance = Infinity;
+
+    steps.forEach(step=>{
+
+        if(!step.maneuver ||
+           !step.maneuver.location)
+            return;
+
+        const p =
+            [
+                step.maneuver.location[1],
+                step.maneuver.location[0]
+            ];
+
+        const d =
+            map.distance(
+                [lat,lon],
+                p
+            );
+
+        if(d < nearestDistance){
+
+            nearestDistance = d;
+            nearest = step;
+        }
+    });
+
+    if(!nearest)
+        return;
+
+    let icon = "↑";
+
+    const type =
+        nearest.maneuver.type;
+
+    const modifier =
+        nearest.maneuver.modifier || "";
+
+    if(modifier.includes("right"))
+        icon = "↗";
+
+    if(modifier.includes("left"))
+        icon = "↖";
+
+    if(type === "roundabout")
+        icon = "⟳";
+
+    document.getElementById("navDirection")
+        .textContent = icon;
+
+    document.getElementById("navInstruction")
+        .textContent =
+        nearest.maneuver.instruction ||
+        "Продолжайте движение";
+}
+
+
+/* =========================
+   РАССТОЯНИЕ
+========================= */
+
+function updateRouteDistance(lat,lon){
+
+    if(!routeData)
+        return;
+
+    const end =
+        routeData.geometry.coordinates[
+            routeData.geometry.coordinates.length-1
+        ];
+
+    const destination =
+        [end[1],end[0]];
+
+    const distance =
+        map.distance(
+            [lat,lon],
+            destination
+        );
+
+    const km =
+        distance / 1000;
+
+    document.getElementById("remaining")
+        .textContent =
+        km.toFixed(1)+" км";
+
+    const durationMinutes =
+        Math.max(
+            1,
+            Math.round(
+                distance /
+                Math.max(currentSpeedValue/3.6,8) /
+                60
+            )
+        );
+
+    const arrival =
+        new Date(
+            Date.now() +
+            durationMinutes*60000
+        );
+
+    document.getElementById("arrival")
+        .textContent =
+        arrival.toLocaleTimeString(
+            [],
+            {
+                hour:"2-digit",
+                minute:"2-digit"
+            }
+        );
+}
+
+
+/* =========================
+   ПРЕДУПРЕЖДЕНИЯ
+========================= */
+
+function checkWarnings(lat,lon){
+
+    const now =
+        Date.now();
+
+    if(now-lastWarning < 7000)
+        return;
+
+
+    /* КАМЕРЫ */
+
+    if(camerasEnabled){
+
+        for(const camera of cameraMarkers){
+
+            const distance =
+                map.distance(
+                    [lat,lon],
+                    camera.getLatLng()
+                );
+
+            if(distance <= 350){
+
+                showWarning(
+                    "📷 ВПЕРЕДИ КАМЕРА — СНИЗЬТЕ СКОРОСТЬ!"
+                );
+
+                speak(
+                    "Впереди камера. Снизьте скорость."
+                );
+
+                lastWarning = now;
+
+                return;
+            }
+        }
+    }
+
+
+    /* ОГРАНИЧЕНИЯ */
+
+    if(speedLimitsEnabled){
+
+        let nearest = null;
+        let nearestDistance = Infinity;
+
+        speedMarkers.forEach(marker=>{
+
+            const distance =
+                map.distance(
+                    [lat,lon],
+                    marker.getLatLng()
+                );
+
+            if(distance < nearestDistance){
+
+                nearestDistance = distance;
+                nearest = marker;
+            }
+        });
+
+        if(nearest && nearestDistance <= 250){
+
+            document.getElementById("currentLimit")
+                .textContent =
+                "Ограничение: " +
+                nearest.limit +
+                " км/ч";
+
+            if(
+                currentSpeedValue >
+                nearest.limit + 5
+            ){
+
+                showWarning(
+                    "⛔ СНИЗЬТЕ СКОРОСТЬ — " +
+                    nearest.limit +
+                    " КМ/Ч"
+                );
+
+                speak(
+                    "Снизьте скорость. Ограничение " +
+                    nearest.limit +
+                    " километров в час."
+                );
+
+                lastWarning = now;
+
+                return;
+            }
+        }
+    }
+}
+
+
+/* =========================
+   WARNING
+========================= */
+
+function showWarning(text){
+
+    const warning =
+        document.getElementById("warning");
+
+    warning.textContent = text;
+
+    warning.classList.add("show");
+
+    setTimeout(()=>{
+        warning.classList.remove("show");
+    },4500);
+}
+
+
+/* =========================
+   ГОЛОС
+========================= */
+
+function speak(text){
+
+    if(!voiceEnabled)
+        return;
+
+    if(!window.speechSynthesis)
+        return;
+
+    window.speechSynthesis.cancel();
+
+    const message =
+        new SpeechSynthesisUtterance(text);
+
+    message.lang = "ru-RU";
+    message.rate = 1;
+
+    window.speechSynthesis.speak(message);
+}
+
+
+/* =========================
+   GPS ERROR
+========================= */
+
+function gpsError(){
+
+    document.getElementById("navInstruction")
+        .textContent =
+        "Нет сигнала GPS";
+}
+
+
+/* =========================
+   ОСТАНОВКА
+========================= */
+
+function stopNavigation(){
+
+    navigationActive = false;
+
+    if(watchID !== null){
+
+        navigator.geolocation
+            .clearWatch(watchID);
+
+        watchID = null;
+    }
+
+    document
+        .getElementById("navigation")
+        .classList.remove("active");
+
+    if(userMarker){
+
+        map.removeLayer(userMarker);
+        userMarker = null;
+    }
+
+    speak("Навигация завершена");
+}
+
+
+/* =========================
+   НАСТРОЙКИ
+========================= */
+
+async function openSettings(){
+
+    const camera =
+        confirm(
+            "Настройки DriveX\n\n" +
+            "OK — включить голосовые предупреждения\n" +
+            "Отмена — выключить"
+        );
+
+    voiceEnabled = camera;
+
+    const radar =
+        confirm(
+            "Включить камеру телефона как радар?"
+        );
+
+    if(radar)
+        startRadar();
+    else
+        stopRadar();
+}
+
+
+/* =========================
+   РАДАР
+========================= */
+
+async function startRadar(){
+
+    const video =
+        document.getElementById("cameraVideo");
+
+    try{
+
+        const stream =
+            await navigator.mediaDevices
+            .getUserMedia({
+                video:{
+                    facingMode:{
+                        ideal:"environment"
+                    }
+                },
+                audio:false
+            });
+
+        video.srcObject = stream;
+
+        document
+            .getElementById("radar")
+            .classList.add("active");
+
+    }catch(error){
+
+        alert(
+            "Не удалось открыть камеру. " +
+            "Разрешите доступ к камере браузеру."
+        );
+    }
+}
+
+
+function stopRadar(){
+
+    const video =
+        document.getElementById("cameraVideo");
+
+    if(video.srcObject){
+
+        video.srcObject
+            .getTracks()
+            .forEach(track=>track.stop());
+
+        video.srcObject = null;
+    }
+
+    document
+        .getElementById("radar")
+        .classList.remove("active");
+}
+
+
+/* =========================
+   КЛИК ПО КАРТЕ
+========================= */
+
+map.on("click",function(e){
+
+    if(!navigationActive)
+        return;
+
+    const lat =
+        e.latlng.lat;
+
+    const lon =
+        e.latlng.lng;
+
+    console.log(
+        "GPS:",
+        lat,
+        lon
+    );
+});
+
+</script>
+
+</body>
+</html>
